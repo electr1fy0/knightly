@@ -26,12 +26,12 @@ const (
 )
 
 type Move struct {
-	Pos        Point
-	Capture    bool
-	Promote    bool
-	Unit       byte
-	SourceFile byte
-	Castle     uint8
+	From, To        Point
+	Capture         bool
+	Promote         bool
+	PromotionChoice byte
+	Piece           *Piece
+	Castle          uint8
 }
 
 type Castle struct {
@@ -39,21 +39,62 @@ type Castle struct {
 
 type Point struct{ R, C byte }
 
+type Piece struct {
+	Unit  byte
+	Color bool
+}
 type Board struct {
-	Grid     [][]byte
+	Grid     [][]*Piece
 	Turn     bool
 	Captured []byte
 }
 
 func (B *Board) Init() {
-	B.Grid = make([][]byte, SIZE)
-	initial := "8rnbqkbnr7pppppppp6........5........4........3........2PPPPPPPP1RNBQKBNR abcdefgh"
+	B.Grid = make([][]*Piece, SIZE)
+	initial := []string{
+		"rnbqkbnr", // 8th, black
+		"pppppppp",
+		"........",
+		"........",
+		"........",
+		"........",
+		"PPPPPPPP",
+		"RNBQKBNR", // 1st, white
+	}
 	for i := range len(B.Grid) {
-		B.Grid[i] = make([]byte, SIZE)
+		B.Grid[i] = make([]*Piece, SIZE)
 		for j := range len(B.Grid[i]) {
-			B.Grid[i][j] = initial[i*SIZE+j]
+			B.Grid[i][j] = &Piece{
+				Unit:  initial[i][j],
+				Color: B.Grid[i][j].Unit >= 65 && B.Grid[i][j].Unit <= 90,
+			}
 		}
 	}
+	B.Turn = true
+	B.Captured = []byte{}
+}
+
+func (B *Board) IsValidPawnMove(m Move) bool {
+
+}
+
+func (B *Board) IsValidKnightMove(m Move) bool {
+
+}
+
+func (B *Board) IsValidRookMove(m Move) bool {
+
+}
+
+func (B *Board) IsValidMove(m Move) bool {
+	piece := B.Grid[m.From.R][m.From.C]
+	if piece == nil || piece.Color != B.Turn {
+		return false
+	}
+	switch piece.Unit {
+
+	}
+	return false
 }
 
 func (B *Board) ParseMove(input string) {
@@ -63,43 +104,48 @@ func (B *Board) ParseMove(input string) {
 	switch strings.TrimSpace(input) {
 	case "0-0":
 		move.Castle = 1
+		return
 	case "0-0-0":
 		move.Castle = 2
+		return
 	}
 
 	if input[ptr] >= 97 && input[ptr] <= 104 {
 		if input[ptr+1] == 'x' {
 			move.Capture = true
-			move.SourceFile = input[ptr]
+			move.From.C = input[ptr]
+			// find a way to get the row as well by searching the column for the pawn
 			ptr += 2
 		}
+
 		if B.Turn {
-			move.Unit = 'p'
+			move.From = Point{}
+			move.Piece.Unit = 'p'
 		} else {
-			move.Unit = 'P'
+			move.Piece.Unit = 'P'
 		}
 	} else {
-		move.Unit = input[ptr]
+		move.Piece.Unit = input[ptr]
 		ptr++
 		if input[ptr] == 'x' {
 			move.Capture = true
 			ptr++
 		}
 	}
-	if move.SourceFile == 0 {
-		move.SourceFile = 'z'
-	}
+	// if move.SourceFile == 0 {
+	// move.SourceFile = 'z'
+	// }
 
-	move.Pos.C = input[ptr]
+	move.To.C = input[ptr]
 	ptr++
-	move.Pos.R = input[ptr]
+	move.To.R = input[ptr]
 	ptr++
 	if int(ptr) < len(input) && input[ptr] == '=' {
 		move.Promote = true
 		ptr++
 	}
 	fmt.Printf("pos: %c%c | unit: %c | capture: %t | sourceFile: %c | promote: %t\n",
-		move.Pos.C, move.Pos.R, move.Unit, move.Capture, move.SourceFile, move.Promote)
+		move.To.C, move.To.R, move.Piece.Unit, move.Capture, move.From.C, move.Promote)
 
 }
 
